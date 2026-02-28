@@ -7,10 +7,25 @@ authors = [
 ]
 readme = "README.md"
 requires-python = ">=3.12"
+package-mode = false
 dependencies = [
+    "requests (>=2.32.5,<3.0.0)"
 ]
 
+[tool.poetry]
+package-mode = false
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+lint = [
+    "flake8 (>=7.3.0,<8.0.0)",
+    "mypy (>=1.19.1,<2.0.0)",
+    "black (>=26.1.0,<27.0.0)",
+    "isort (>=8.0.1,<9.0.0)"
+]
+
+[tool.poetry.dependencies]
+psycopg2-binary = "^2.9"
