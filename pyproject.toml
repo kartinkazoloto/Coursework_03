@@ -26,6 +26,9 @@ lint = [
     "black (>=26.1.0,<27.0.0)",
     "isort (>=8.0.1,<9.0.0)"
 ]
+dev = [
+    "pytest (>=9.0.2,<10.0.0)"
+]
 
 [tool.poetry.dependencies]
 psycopg2-binary = "^2.9"
