@@ -1,5 +1,6 @@
 import requests
-
+import json
+from  src.file_handler import save_json
 
 
 def get_vacancies_hh(text=None, area=None, currency=None, salary=None, max_result=2000):
@@ -45,9 +46,12 @@ def get_vacancies_hh(text=None, area=None, currency=None, salary=None, max_resul
         return result
 
 
-def get_employers_hh(text=None, area=None, max_result=2000):
-    """Функция получения данных с сайта hh.ru"""
-    all_results = []
+def get_employers_hh(text=None, area=None, open_vacancies=None, max_result=2000) -> None:
+    """Функция получения данных о работодателях из списка с сайта hh.ru"""
+    with open("../user_settings.json", "r", encoding="utf-8") as f:
+        data = json.load(f)
+    employers_filter: list = data["employers_from_user"]
+    all_results: list = []
     page = 0
     per_page = min(max_result, 100)
     url = "https://api.hh.ru/employers"
@@ -55,6 +59,7 @@ def get_employers_hh(text=None, area=None, max_result=2000):
         params_vacancies = {
             "text": text,
             "area": area,
+            "open_vacancies": open_vacancies,
             "page": page,
             "per_page": per_page,
         }
@@ -63,6 +68,13 @@ def get_employers_hh(text=None, area=None, max_result=2000):
             status_code = response.status_code
             if status_code == 200:
                 result = response.json()
+                filtered_items = []
+                for employer in result['items']:
+                    if employer['open_vacancies'] > 0 and (
+                             employer['name'] in employers_filter):
+                        filtered_items.append(employer)
+
+
                 all_results.extend(result['items'])
                 if len(all_results) >= max_result:
                     all_results = all_results[:max_result]
@@ -83,7 +95,7 @@ def get_employers_hh(text=None, area=None, max_result=2000):
             print(f"Ошибка: {e}")
             break
 
-        return result
+    return result
 
 
 
@@ -94,5 +106,7 @@ if __name__ == '__main__':
     # area = "Россия"
     # currency = "руб"
     # salary = 50000
-    vacancies = get_vacancies_hh()
-    json = save(vacancies)
+    # vacancies = get_vacancies_hh()
+    # json = save(vacancies)
+    emp = get_employers_hh()
+    emp_json = save_json(emp, "employers.json")
