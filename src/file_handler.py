@@ -3,6 +3,8 @@ import psycopg2
 from pathlib import Path
 import json
 from config import config
+import time
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 
 def save_json(data, file_name) -> list:
@@ -24,15 +26,24 @@ def create_database(database_name, params) -> None:
     """Создает новую базу данных."""
 
     conn = psycopg2.connect(dbname='postgres', **params)
-    conn.autocommit = True
+    conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
     cur = conn.cursor()
 
-    cur.execute(f"DROP DATABASE {database_name}")
+    cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (database_name,))
+    if cur.fetchone():
+        cur.execute(f"DROP DATABASE {database_name}")
+        print(f"База данных {database_name} удалена")
     cur.execute(f"CREATE DATABASE {database_name}")
+    print(f"База данных {database_name} создана")
 
     conn.close()
 
+
+def create_table_in_db(database_name, params) -> None:
+    time.sleep(5)
     conn = psycopg2.connect(dbname=database_name, **params)
+    conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+
 
     with conn.cursor() as cur:
         cur.execute("""
@@ -90,37 +101,37 @@ def add_foreign_keys(cur, json_file) -> None:
     pass
 
 
-def create_db():
-    """Общий файл для создания БД и заполнения ее данными о вакансиях и работодателях."""
-    script_file = 'fill_db.sql'
-    json_file = 'suppliers.json'
-    db_name = 'my_new_db'
-
-    params = config()
-    conn = None
-
-    create_database(params, db_name)
-    print(f"БД {db_name} успешно создана")
-
-    params.update({'dbname': db_name})
-    try:
-        with psycopg2.connect(**params) as conn:
-            with conn.cursor() as cur:
-                execute_sql_script(cur, script_file)
-                print(f"БД {db_name} успешно заполнена")
-
-                create_employers_table(cur)
-                print("Таблица employers успешно создана")
-
-                suppliers = get_employers_data(json_file)
-                insert_employers_data(cur, suppliers)
-                print("Данные в employers успешно добавлены")
-
-                add_foreign_keys(cur, json_file)
-                print(f"FOREIGN KEY успешно добавлены")
-
-    except(Exception, psycopg2.DatabaseError) as error:
-        print(error)
-    finally:
-        if conn is not None:
-            conn.close()
+# def create_db():
+#     """Общий файл для создания БД и заполнения ее данными о вакансиях и работодателях."""
+#     script_file = 'fill_db.sql'
+#     json_file = 'suppliers.json'
+#     db_name = 'my_new_db'
+#
+#     params = config()
+#     conn = None
+#
+#     create_database(params, db_name)
+#     print(f"БД {db_name} успешно создана")
+#
+#     params.update({'dbname': db_name})
+#     try:
+#         with psycopg2.connect(**params) as conn:
+#             with conn.cursor() as cur:
+#                 execute_sql_script(cur, script_file)
+#                 print(f"БД {db_name} успешно заполнена")
+#
+#                 create_employers_table(cur)
+#                 print("Таблица employers успешно создана")
+#
+#                 suppliers = get_employers_data(json_file)
+#                 insert_employers_data(cur, suppliers)
+#                 print("Данные в employers успешно добавлены")
+#
+#                 add_foreign_keys(cur, json_file)
+#                 print(f"FOREIGN KEY успешно добавлены")
+#
+#     except(Exception, psycopg2.DatabaseError) as error:
+#         print(error)
+#     finally:
+#         if conn is not None:
+#             conn.close()

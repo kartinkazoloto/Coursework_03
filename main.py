@@ -1,6 +1,8 @@
 
 
 from src.api_hh import get_vacancies_hh, get_employers_hh
+from src.file_handler import create_database, create_table_in_db
+from config import config
 
 
 def main():
@@ -37,3 +39,7 @@ if __name__ == '__main__':
     # emp = get_employers_hh()
     # emp_json = save_json(emp, "employers.json")
 
+    database_name = 'HH'  #ВВедите наименование базы данных
+    params = config()
+    db = create_database(database_name, params)
+    t_db = create_table_in_db(database_name, params)
