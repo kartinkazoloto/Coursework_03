@@ -1,10 +1,10 @@
 import os
+
 import psycopg2
 from pathlib import Path
 import json
-from config import config
 import time
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT, cursor
 
 
 def save_json(data, file_name) -> list:
@@ -27,44 +27,69 @@ def create_database(database_name, params) -> None:
 
     conn = psycopg2.connect(dbname='postgres', **params)
     conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-    cur = conn.cursor()
+    cur: cursor = conn.cursor()
 
     cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (database_name,))
     if cur.fetchone():
         cur.execute(f"DROP DATABASE {database_name}")
         print(f"База данных {database_name} удалена")
+    # cur.execute(f"DROP DATABASE {database_name}")
     cur.execute(f"CREATE DATABASE {database_name}")
+
     print(f"База данных {database_name} создана")
 
     conn.close()
 
 
 def create_table_in_db(database_name, params) -> None:
-    time.sleep(5)
+    # time.sleep(5)
     conn = psycopg2.connect(dbname=database_name, **params)
     conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-
+    # max_attempts = 15
+    # for attempt in range(1, max_attempts + 1):
+    #     try:
+    #         print(f"Попытка подключения к БД {database_name} (попытка {attempt}/{max_attempts})...")
+    #         conn = psycopg2.connect(dbname=database_name, **params)
+    #         print("Подключение к базе данных установлено")
+    #         break
+    #     except psycopg2.OperationalError as e:
+    #         print(traceback.print_exc())
+    #         error_msg = str(e).lower()
+    #         if "database does not exist" in error_msg or "не существует" in error_msg:
+    #             if attempt < max_attempts:
+    #                 print(f"БД ещё не готова, ждём 1 сек...")
+    #                 time.sleep(1)
+    #             else:
+    #                 print("Превышено количество попыток подключения")
+    #                 return False
+    #         else:
+    #             print(f"Другая ошибка подключения: {e}")
+    #             return False
+    #     except Exception as e:
+    #         print(f"Неожиданная ошибка при подключении: {e}")
+    #         return False
 
     with conn.cursor() as cur:
         cur.execute("""
-            CREATE TABLE vacancies (
+            CREATE TABLE IF NOT EXISTS vacancies 
+            (
                 vacancy_id SERIAL PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
                 salary INTEGER,
                 currency VARCHAR(5),
                 vacancy_url TEXT,
                 employer_id INTEGER,
-                employer VARCHAR,
-                work_format VARCHAR,
+                employer VARCHAR(255),
+                work_format VARCHAR(25)
                 )
         """)
 
     with conn.cursor() as cur:
         cur.execute("""
-            CREATE TABLE employers (
+            CREATE TABLE IF NOT EXISTS employers (
                 employer_id SERIAL PRIMARY KEY,
-                name VARCHAR NOT NULL,
-                open_vacancies INTEGER NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                open_vacancies INTEGER NOT NULL
                 )
         """)
 
