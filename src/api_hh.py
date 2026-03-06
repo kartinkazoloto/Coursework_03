@@ -1,6 +1,6 @@
 import requests
 import json
-from  src.file_handler import save_json
+from src.file_handler import save_json
 
 
 def get_vacancies_hh(text=None, area=None, currency=None, salary=None, max_result=2000):
@@ -43,14 +43,25 @@ def get_vacancies_hh(text=None, area=None, currency=None, salary=None, max_resul
             print(f"Ошибка: {e}")
             break
 
-        return result
+        return all_results
 
 
 def get_employers_hh(text=None, area=None, open_vacancies=None, max_result=2000) -> None:
     """Функция получения данных о работодателях из списка с сайта hh.ru"""
-    with open("../user_settings.json", "r", encoding="utf-8") as f:
-        data = json.load(f)
-    employers_filter: list = data["employers_from_user"]
+    # with open("../user_settings.json", "r", encoding="utf-8") as f:
+    #     data = json.load(f)
+    employers_filter: list = [
+                        '15478', # VK
+                        '3529', # Сбер
+                        '1740', # Яндекс
+                        '78638', # Тинькофф
+                        '4181', # Газпромнефть
+                        '3776', # МТС
+                        '39305', # Ozon
+                        '87021', # Wildberries
+                        '2180', # Ростелеком
+                        '882', # 1С
+                        ]
     all_results: list = []
     page = 0
     per_page = min(max_result, 100)
@@ -70,12 +81,11 @@ def get_employers_hh(text=None, area=None, open_vacancies=None, max_result=2000)
                 result = response.json()
                 filtered_items = []
                 for employer in result['items']:
-                    if employer['open_vacancies'] > 0 and (
-                             employer['name'] in employers_filter):
+                    if (employer.get('open_vacancies', 0)) > 0:
                         filtered_items.append(employer)
 
-
-                all_results.extend(result['items'])
+                all_results.extend(filtered_items)
+                # all_results.extend(result['items'])
                 if len(all_results) >= max_result:
                     all_results = all_results[:max_result]
                     break
@@ -95,10 +105,7 @@ def get_employers_hh(text=None, area=None, open_vacancies=None, max_result=2000)
             print(f"Ошибка: {e}")
             break
 
-    return result
-
-
-
+    return all_results
 
 
 if __name__ == '__main__':

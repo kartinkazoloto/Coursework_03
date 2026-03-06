@@ -1,7 +1,8 @@
 
 
 from src.api_hh import get_vacancies_hh, get_employers_hh
-from src.file_handler import create_database, create_table_in_db
+from src.file_handler import (create_database, create_table_in_db,
+                              save_json, get_vacancies_data, get_employers_data)
 from config import config
 
 
@@ -34,12 +35,17 @@ if __name__ == '__main__':
 # "id": "FIELD_WORK",
 # "name": "Разъездная"
 # }]
-    # vacancies = get_vacancies_hh()
-    # json = save_json(vacancies, "vacancies.json")
-    # emp = get_employers_hh()
-    # emp_json = save_json(emp, "employers.json")
+    vac = get_vacancies_hh()
+    vac_json = save_json(vac, "vacancies.json")
+    emp = get_employers_hh()
+    emp_json = save_json(emp, "employers.json")
 
     database_name = 'hh'  #ВВедите наименование базы данных lower()
     params = config()
+
     db = create_database(database_name, params)
     t_db = create_table_in_db(database_name, params)
+
+    vacancies = get_vacancies_data(vac_json, database_name, params)
+    employers = get_employers_data(emp_json, database_name, params)
+
