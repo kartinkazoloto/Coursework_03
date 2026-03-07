@@ -214,7 +214,7 @@ def get_employers_data(json_data: dict, database_name: str, params) -> list[dict
             '39305',  # Ozon
             '87021',  # Wildberries
             '2180',  # Ростелеком
-            '64174',  # 1С  882
+            '64174',  # 1С  882 'X5 Group'
         ]
         for item in json_data:
             # if item.get('id') in employers_filter:
