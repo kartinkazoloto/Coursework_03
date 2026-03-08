@@ -43,29 +43,7 @@ def create_table_in_db(database_name: str, params) -> None:
     """Создает таблицы в базе данных"""
     conn = psycopg2.connect(dbname=database_name, **params)
     conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-    # max_attempts = 15
-    # for attempt in range(1, max_attempts + 1):
-    #     try:
-    #         print(f"Попытка подключения к БД {database_name} (попытка {attempt}/{max_attempts})...")
-    #         conn = psycopg2.connect(dbname=database_name, **params)
-    #         print("Подключение к базе данных установлено")
-    #         break
-    #     except psycopg2.OperationalError as e:
-    #         print(traceback.print_exc())
-    #         error_msg = str(e).lower()
-    #         if "database does not exist" in error_msg or "не существует" in error_msg:
-    #             if attempt < max_attempts:
-    #                 print(f"БД ещё не готова, ждём 1 сек...")
-    #                 time.sleep(1)
-    #             else:
-    #                 print("Превышено количество попыток подключения")
-    #                 return False
-    #         else:
-    #             print(f"Другая ошибка подключения: {e}")
-    #             return False
-    #     except Exception as e:
-    #         print(f"Неожиданная ошибка при подключении: {e}")
-    #         return False
+
     with conn.cursor() as cur:
         cur.execute("""
             CREATE TABLE IF NOT EXISTS employers (
