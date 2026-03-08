@@ -1,10 +1,7 @@
-import os
-
 import psycopg2
 from psycopg2.extras import execute_batch
 from pathlib import Path
 import json
-import time
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT, cursor
 
 
@@ -69,7 +66,14 @@ def create_table_in_db(database_name: str, params) -> None:
     #     except Exception as e:
     #         print(f"Неожиданная ошибка при подключении: {e}")
     #         return False
-
+    with conn.cursor() as cur:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS employers (
+                employer_id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                open_vacancies INTEGER NOT NULL
+                )
+        """)
     with conn.cursor() as cur:
         cur.execute("""
             CREATE TABLE IF NOT EXISTS vacancies 
@@ -83,34 +87,13 @@ def create_table_in_db(database_name: str, params) -> None:
                 employer VARCHAR(255),
                 work_format VARCHAR(25),
                 vacancy_url TEXT
-                )
-        """)
-
-    with conn.cursor() as cur:
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS employers (
-                employer_id SERIAL PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                open_vacancies INTEGER NOT NULL
-                )
+            );
+            ALTER TABLE vacancies ADD CONSTRAINT fk_employers_vacancies
+                 FOREIGN KEY(employer_id) REFERENCES employers(employer_id);
         """)
 
     conn.commit()
     conn.close()
-
-
-def execute_sql_script(cur, script_file) -> None:
-    """Выполняет скрипт из файла для заполнения БД данными."""
-
-
-# def create_employers_table(cur) -> None:
-#     """Создает таблицу employers."""
-#     pass
-#
-#
-# def create_vacancies_table(cur) -> None:
-#     """Создает таблицу vacancies."""
-#     pass
 
 
 def get_vacancies_data(json_data: dict, database_name: str, params) -> list[dict]:
@@ -118,10 +101,20 @@ def get_vacancies_data(json_data: dict, database_name: str, params) -> list[dict
     try:
         conn = psycopg2.connect(dbname=database_name, **params)
 
+        with open("user_settings.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+        employers_ids = data["employers_from_user"]
         # Подготавливаем данные для вставки
         # data: list = json_data.get("items", [])
         records_to_insert: list = []
         for item in json_data:
+            employer = item.get("employer", {})
+            if not isinstance(employer, dict):
+                continue
+            employer_id = employer.get('id')
+            if employer_id not in employers_ids:
+                continue
+
             salary = item.get('salary', {})
             if isinstance(salary, dict):
                 salary_from = salary.get('from')
@@ -136,32 +129,21 @@ def get_vacancies_data(json_data: dict, database_name: str, params) -> list[dict
             else:
                 area_name = None
 
-            employer = item.get('employer', {})
-            if isinstance(employer, dict):
-                employer_id = employer.get('id')
-                employer_name = employer.get('name')
-            else:
-                employer_id = None
-                employer_name = None
-
             # Извлекаем поля, обрабатываем пропущенные значения
             record = (
                 item.get('id', None),
                 item.get('name', None),
                 salary_from,
                 currency,
-                # salary.get('from', None),
-                # salary.get('currency', None),
                 area_name,
-                # area.get('name', None),  # город
-                # employer.get('id', None),
-                # employer.get('name', None),
                 employer_id,
-                employer_name,
+                # employer.get('id', None),
+                employer.get('name', None),
+                # employer_name,
                 item.get('employment', {}).get('name'),
                 item.get('alternate_url', None),
 
-    )
+            )
             records_to_insert.append(record)
 
         # Вставляем данные в таблицу
@@ -173,6 +155,7 @@ def get_vacancies_data(json_data: dict, database_name: str, params) -> list[dict
                 vacancy_id, name, salary, currency, 
                 area, employer_id, employer, work_format, vacancy_url)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (vacancy_id) DO NOTHING                   
                 """,
                 records_to_insert
             )
@@ -183,14 +166,10 @@ def get_vacancies_data(json_data: dict, database_name: str, params) -> list[dict
 
     except psycopg2.Error as e:
         print(f"Ошибка PostgreSQL при вставке данных: {e}")
-        # if conn:
-        #     conn.rollback()
-        # return False
+
     except Exception as e:
         print(f"Неожиданная ошибка: {e}")
-        # if conn:
-        #     conn.rollback()
-        # return False
+
     finally:
         conn.close()
 
@@ -202,22 +181,9 @@ def get_employers_data(json_data: dict, database_name: str, params) -> list[dict
         conn = psycopg2.connect(dbname=database_name, **params)
 
         # Подготавливаем данные для вставки
-        # data: list = json_data.get("items", [])
         records_to_insert: list = []
-        employers_filter: list = [
-            '15478',  # VK
-            '3529',  # Сбер
-            '1740',  # Яндекс
-            '78638',  # Тинькофф
-            '4181',  # Газпромнефть
-            '3776',  # МТС
-            '39305',  # Ozon
-            '87021',  # Wildberries
-            '2180',  # Ростелеком
-            '64174',  # 1С  882 'X5 Group'
-        ]
+
         for item in json_data:
-            # if item.get('id') in employers_filter:
             # Извлекаем поля, обрабатываем пропущенные значения
             record = (
                 item.get('id', None),
@@ -248,55 +214,9 @@ def get_employers_data(json_data: dict, database_name: str, params) -> list[dict
 
     except psycopg2.Error as e:
         print(f"Ошибка PostgreSQL при вставке данных: {e}")
-        # if conn:
-        #     conn.rollback()
-        # return False
+
     except Exception as e:
         print(f"Неожиданная ошибка: {e}")
-        # if conn:
-        #     conn.rollback()
-        # return False
+
     finally:
         conn.close()
-
-
-
-def add_foreign_keys(cur, json_file) -> None:
-    """Добавляет foreign key со ссылкой на employers_id в таблицу vacancies."""
-    pass
-
-
-# def create_db():
-#     """Общий файл для создания БД и заполнения ее данными о вакансиях и работодателях."""
-#     script_file = 'fill_db.sql'
-#     json_file = 'suppliers.json'
-#     db_name = 'my_new_db'
-#
-#     params = config()
-#     conn = None
-#
-#     create_database(params, db_name)
-#     print(f"БД {db_name} успешно создана")
-#
-#     params.update({'dbname': db_name})
-#     try:
-#         with psycopg2.connect(**params) as conn:
-#             with conn.cursor() as cur:
-#                 execute_sql_script(cur, script_file)
-#                 print(f"БД {db_name} успешно заполнена")
-#
-#                 create_employers_table(cur)
-#                 print("Таблица employers успешно создана")
-#
-#                 suppliers = get_employers_data(json_file)
-#                 insert_employers_data(cur, suppliers)
-#                 print("Данные в employers успешно добавлены")
-#
-#                 add_foreign_keys(cur, json_file)
-#                 print(f"FOREIGN KEY успешно добавлены")
-#
-#     except(Exception, psycopg2.DatabaseError) as error:
-#         print(error)
-#     finally:
-#         if conn is not None:
-#             conn.close()
