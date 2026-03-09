@@ -1,23 +1,20 @@
-from src.api_hh import get_vacancies_hh, get_employers_hh
-from src.db_manager import DBManager
-from src.file_handler import (create_database, create_table_in_db,
-                              save_json, get_vacancies_data,
-                              get_employers_data, print_result)
 from config import config
+from src.api_hh import get_employers_hh, get_vacancies_hh
+from src.db_manager import DBManager
+from src.file_handler import (
+    create_database,
+    create_table_in_db,
+    get_employers_data,
+    get_vacancies_data,
+    save_json,
+)
 from src.user_menu import UserInteraction
 
 
 def main():
     print("Добро пожаловать!")
     print("Загружаем данные...")
-    # while True:
-    #     keyword = input("Введите ключевое слово для поиска вакансии: ").lower()
-    #     if keyword:
-    #         break
-    # while True:
-    #     currency = input("Выберете валюту (RUR, EUR, USD): ")
-    #     if currency.upper() in ("RUR", "EUR", "USD"):
-    #         break
+
     emp = get_employers_hh()
     emp_json = save_json(emp, "employers.json")
     vac = get_vacancies_hh()
@@ -33,12 +30,11 @@ def main():
     db.connect()
     ui = UserInteraction(db)
     ui.run()
-    if 'db' in locals():
+    if "db" in locals():
         db.close()
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
     # text = "python" Выберете ключевое слово для поиска вакансии
     # area = "Россия" Выберете область для поиска

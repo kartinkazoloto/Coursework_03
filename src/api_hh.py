@@ -1,9 +1,6 @@
-from locale import currency
-
-import requests
 import json
 
-from src.file_handler import save_json
+import requests
 
 
 def get_employers_hh():
@@ -22,11 +19,13 @@ def get_employers_hh():
             if response.status_code == 200:
                 emp = response.json()
 
-                results.append({
-                    "id": emp["id"],
-                    "name": emp["name"],
-                    "open_vacancies": emp["open_vacancies"]
-                })
+                results.append(
+                    {
+                        "id": emp["id"],
+                        "name": emp["name"],
+                        "open_vacancies": emp["open_vacancies"],
+                    }
+                )
 
             else:
                 print(f"{emp_id} ошибка {response.status_code}")
@@ -37,7 +36,7 @@ def get_employers_hh():
     return results
 
 
-def get_vacancies_hh(text=None, area=None, currency=None, salary=None, max_result=2000):
+def get_vacancies_hh(max_result=2000):
     """Функция получения данных о вакансиях по выбранным работодателям с сайта hh.ru"""
     with open("user_settings.json", "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -52,14 +51,10 @@ def get_vacancies_hh(text=None, area=None, currency=None, salary=None, max_resul
 
     while len(all_results) < max_result:
         params_vacancies = {
-            # "text": text,
-            # "area": area,
-            "currency": currency,
             "employer_id": employers_ids,
-            "only_with_salary": True,
-            # "salary": salary,
+            # "only_with_salary": True,
             "page": page,
-            "per_page": per_page
+            "per_page": per_page,
         }
         try:
             response = requests.get(url, params=params_vacancies, timeout=5)
@@ -72,13 +67,11 @@ def get_vacancies_hh(text=None, area=None, currency=None, salary=None, max_resul
             if not result["items"]:
                 break
 
-
             all_results.extend(result["items"])
             if len(all_results) >= max_result:
                 all_results = all_results[:max_result]
                 break
             page += 1
-
 
         except requests.exceptions.Timeout:
             print("Ошибка: Таймаут запроса. Попробуйте повторить позже.")
@@ -91,14 +84,3 @@ def get_vacancies_hh(text=None, area=None, currency=None, salary=None, max_resul
             break
 
     return all_results
-
-
-if __name__ == '__main__':
-    # text = "python"
-    # area = "Россия"
-    # currency = "руб"
-    # salary = 50000
-    # vacancies = get_vacancies_hh()
-    # json = save(vacancies)
-    emp = get_employers_hh()
-    emp_json = save_json(emp, "employers.json")

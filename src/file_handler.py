@@ -1,16 +1,15 @@
-import psycopg2
-from tabulate import tabulate
-from psycopg2.extras import execute_batch
-from pathlib import Path
 import json
+from pathlib import Path
+
+import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT, cursor
+from psycopg2.extras import execute_batch
 
 
-def save_json(data, file_name) -> list:
+def save_json(data, file_name: str) -> list:
     """Сохранение инфо в файл JSON"""
     save_dir = Path(__file__).parent.parent / "data"
     save_dir.mkdir(parents=True, exist_ok=True)
-    # file_name = "data.json"
     path_file = save_dir / file_name
     try:
         with open(path_file, "w", encoding="utf-8") as f:
@@ -24,15 +23,14 @@ def save_json(data, file_name) -> list:
 def create_database(database_name: str, params) -> None:
     """Создает новую базу данных."""
 
-    conn = psycopg2.connect(dbname='postgres', **params)
+    conn = psycopg2.connect(dbname="postgres", **params)
     conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
     cur: cursor = conn.cursor()
 
     cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (database_name,))
     if cur.fetchone():
         cur.execute(f"DROP DATABASE {database_name}")
-        print(f"База данных {database_name} удалена")
-    # cur.execute(f"DROP DATABASE {database_name}")
+
     cur.execute(f"CREATE DATABASE {database_name}")
 
     print(f"База данных {database_name} создана")
@@ -55,13 +53,13 @@ def create_table_in_db(database_name: str, params) -> None:
         """)
     with conn.cursor() as cur:
         cur.execute("""
-            CREATE TABLE IF NOT EXISTS vacancies 
+            CREATE TABLE IF NOT EXISTS vacancies
             (
                 vacancy_id SERIAL PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
                 salary INTEGER,
                 currency VARCHAR(5),
-                area VARCHAR(255),              
+                area VARCHAR(255),
                 employer_id INTEGER,
                 employer VARCHAR(255),
                 work_format VARCHAR(25),
@@ -90,36 +88,35 @@ def get_vacancies_data(json_data: dict, database_name: str, params) -> list[dict
             employer = item.get("employer", {})
             if not isinstance(employer, dict):
                 continue
-            employer_id = employer.get('id')
+            employer_id = employer.get("id")
             if employer_id not in employers_ids:
                 continue
 
-            salary = item.get('salary', {})
+            salary = item.get("salary", {})
             if isinstance(salary, dict):
-                salary_from = salary.get('from')
-                currency = salary.get('currency')
+                salary_from = salary.get("from")
+                currency = salary.get("currency")
             else:
                 salary_from = None
                 currency = None
 
-            area = item.get('area', {})
+            area = item.get("area", {})
             if isinstance(area, dict):
-                area_name = area.get('name')
+                area_name = area.get("name")
             else:
                 area_name = None
 
             # Извлекаем поля, обрабатываем пропущенные значения
             record = (
-                item.get('id', None),
-                item.get('name', None),
+                item.get("id", None),
+                item.get("name", None),
                 salary_from,
                 currency,
                 area_name,
                 employer_id,
-                employer.get('name', None),
-                item.get('employment', {}).get('name'),
-                item.get('alternate_url', None),
-
+                employer.get("name", None),
+                item.get("employment", {}).get("name"),
+                item.get("alternate_url", None),
             )
             records_to_insert.append(record)
 
@@ -129,17 +126,17 @@ def get_vacancies_data(json_data: dict, database_name: str, params) -> list[dict
                 cur,
                 """
                 INSERT INTO vacancies (
-                vacancy_id, name, salary, currency, 
+                vacancy_id, name, salary, currency,
                 area, employer_id, employer, work_format, vacancy_url)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (vacancy_id) DO NOTHING                   
+                ON CONFLICT (vacancy_id) DO NOTHING
                 """,
-                records_to_insert
+                records_to_insert,
             )
 
         conn.commit()
         print(f"Успешно вставлено {len(records_to_insert)} записей в таблицу vacancies")
-        return True
+        return records_to_insert
 
     except psycopg2.Error as e:
         print(f"Ошибка PostgreSQL при вставке данных: {e}")
@@ -162,10 +159,9 @@ def get_employers_data(json_data: dict, database_name: str, params) -> list[dict
         for item in json_data:
 
             record = (
-                item.get('id', None),
-                item.get('name', None),
-                item.get('open_vacancies', None)
-
+                item.get("id", None),
+                item.get("name", None),
+                item.get("open_vacancies", None),
             )
             records_to_insert.append(record)
 
@@ -181,12 +177,12 @@ def get_employers_data(json_data: dict, database_name: str, params) -> list[dict
                     name = EXCLUDED.name,
                     open_vacancies = EXCLUDED.open_vacancies
                 """,
-                records_to_insert
+                records_to_insert,
             )
 
         conn.commit()
         print(f"Успешно вставлено {len(records_to_insert)} записей в таблицу employers")
-        return True
+        return records_to_insert
 
     except psycopg2.Error as e:
         print(f"Ошибка PostgreSQL при вставке данных: {e}")
@@ -196,8 +192,3 @@ def get_employers_data(json_data: dict, database_name: str, params) -> list[dict
 
     finally:
         conn.close()
-
-
-def print_result(data: list):
-    """Вывод итогового списка"""
-    print(tabulate(data, headers="keys", tablefmt="grid"))

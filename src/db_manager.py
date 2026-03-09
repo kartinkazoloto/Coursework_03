@@ -44,8 +44,8 @@ class DBManager:
                 SELECT employer, COUNT(vacancy_id) FROM vacancies
                 INNER JOIN employers ON vacancies.employer_id = employers.employer_id
                 GROUP BY employer
-            """
-                        )
+                ORDER BY COUNT(vacancy_id) DESC
+            """)
             result = cur.fetchall()
             return result
 
@@ -58,8 +58,7 @@ class DBManager:
             cur.execute("""
                 SELECT employer, name, salary, vacancy_url FROM vacancies
                 WHERE salary IS NOT NULL
-                """
-                        )
+                """)
             result = cur.fetchall()
             return result
 
@@ -96,12 +95,14 @@ class DBManager:
         if not self.conn:
             self.connect()
         with self.conn.cursor() as cur:
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT * FROM vacancies
                 WHERE LOWER(name) LIKE LOWER(%s)
                 ORDER BY salary DESC
                 """,
-                        (f'%{keyword}%',))
+                (f"%{keyword}%",),
+            )
             result = cur.fetchall()
             if not result:
                 print(f"Нет данных по ключевому слову: {keyword}")
