@@ -1,4 +1,5 @@
 import psycopg2
+from tabulate import tabulate
 from psycopg2.extras import execute_batch
 from pathlib import Path
 import json
@@ -83,7 +84,7 @@ def get_vacancies_data(json_data: dict, database_name: str, params) -> list[dict
             data = json.load(f)
         employers_ids = data["employers_from_user"]
         # Подготавливаем данные для вставки
-        # data: list = json_data.get("items", [])
+
         records_to_insert: list = []
         for item in json_data:
             employer = item.get("employer", {})
@@ -115,9 +116,7 @@ def get_vacancies_data(json_data: dict, database_name: str, params) -> list[dict
                 currency,
                 area_name,
                 employer_id,
-                # employer.get('id', None),
                 employer.get('name', None),
-                # employer_name,
                 item.get('employment', {}).get('name'),
                 item.get('alternate_url', None),
 
@@ -158,11 +157,10 @@ def get_employers_data(json_data: dict, database_name: str, params) -> list[dict
     try:
         conn = psycopg2.connect(dbname=database_name, **params)
 
-        # Подготавливаем данные для вставки
         records_to_insert: list = []
 
         for item in json_data:
-            # Извлекаем поля, обрабатываем пропущенные значения
+
             record = (
                 item.get('id', None),
                 item.get('name', None),
@@ -198,3 +196,8 @@ def get_employers_data(json_data: dict, database_name: str, params) -> list[dict
 
     finally:
         conn.close()
+
+
+def print_result(data: list):
+    """Вывод итогового списка"""
+    print(tabulate(data, headers="keys", tablefmt="grid"))

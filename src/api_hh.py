@@ -1,3 +1,5 @@
+from locale import currency
+
 import requests
 import json
 
@@ -35,7 +37,7 @@ def get_employers_hh():
     return results
 
 
-def get_vacancies_hh(text=None, area=None, salary=None, max_result=2000):
+def get_vacancies_hh(text=None, area=None, currency=None, salary=None, max_result=2000):
     """Функция получения данных о вакансиях по выбранным работодателям с сайта hh.ru"""
     with open("user_settings.json", "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -52,7 +54,7 @@ def get_vacancies_hh(text=None, area=None, salary=None, max_result=2000):
         params_vacancies = {
             # "text": text,
             # "area": area,
-            # "currency": 'RUR',
+            "currency": currency,
             "employer_id": employers_ids,
             "only_with_salary": True,
             # "salary": salary,

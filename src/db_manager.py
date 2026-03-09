@@ -35,7 +35,6 @@ class DBManager:
             print("Соединение с БД закрыто")
             self.conn = None
 
-
     def get_companies_and_vacancies_count(self):
         """Получение списка всех компаний и количество вакансий у каждой компании"""
         if not self.conn:
@@ -46,9 +45,9 @@ class DBManager:
                 INNER JOIN employers ON vacancies.employer_id = employers.employer_id
                 GROUP BY employer
             """
-            )
-        result = cur.fetchall()
-        return result
+                        )
+            result = cur.fetchall()
+            return result
 
     def get_all_vacancies(self):
         """Получение списка всех вакансий, с указанием названия компании, названия вакансии,
@@ -60,10 +59,9 @@ class DBManager:
                 SELECT employer, name, salary, vacancy_url FROM vacancies
                 WHERE salary IS NOT NULL
                 """
-            )
-        result = cur.fetchall()
-        return result
-
+                        )
+            result = cur.fetchall()
+            return result
 
     def get_avg_salary(self):
         """Получение средней зарплаты по вакансиям"""
@@ -76,10 +74,8 @@ class DBManager:
                 GROUP BY name, currency
                 ORDER BY name
                 """)
-        result = cur.fetchall()
-        return result
-
-
+            result = cur.fetchall()
+            return result
 
     def get_vacancies_with_higher_salary(self):
         """Получение списка всех вакансий, у которых зарплата выше средней по всем вакансиям"""
@@ -91,9 +87,8 @@ class DBManager:
                 WHERE salary > (SELECT AVG(salary) FROM vacancies)
                 ORDER BY name
                 """)
-        result = cur.fetchall()
-        return result
-
+            result = cur.fetchall()
+            return result
 
     def get_vacancies_with_keyword(self, keyword: str):
         """Получение списка всех вакансий, в названии которы содержатся переданные
@@ -106,6 +101,8 @@ class DBManager:
                 WHERE LOWER(name) LIKE LOWER(%s)
                 ORDER BY salary DESC
                 """,
-                (f'%{keyword}%',))
-        result = cur.fetchall()
-        return result
+                        (f'%{keyword}%',))
+            result = cur.fetchall()
+            if not result:
+                print(f"Нет данных по ключевому слову: {keyword}")
+            return result
